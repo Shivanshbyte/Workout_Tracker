@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+body {
+  font-family: sans-serif;
+  background: #0f172a;
+  margin: 0;
+  overflow-x: hidden;
+}
+.app {
+  margin: auto;
+  padding: 20px;
+}
+h1 {
+  text-align: center;
+  color: #222;
+}
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+  overflow-y: hidden;
+}
+.form input {
+  padding: 8px;
+  border: 1px solid #000000;
+  border-radius: 5px;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+}
+.list li {
+  background: #fff;
+  color: #000;
+  margin-bottom: 8px;
+  padding: 10px;
+  border-radius: 5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.list button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: red;
+}
