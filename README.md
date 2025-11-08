@@ -6,14 +6,12 @@ A modern, responsive **Workout Tracking Web App** built with **React + Node.js +
 
 ## 🚀 Features
 
-✅ **User Authentication (Login / Logout)**  
-✅ **Personalized Greeting** – “Hi Shivansh 👋 Your Workouts”  
+✅ **User Authentication (Login / Logout)**   
 ✅ **Add, Edit & Delete Workouts**  
 ✅ **Track Muscle Groups & Exercises**  
 ✅ **Responsive UI** (mobile-friendly layout)  
-✅ **Workout History Sorted by Date**  
+✅ **Workout History to enable progressive overload**  
 ✅ **SQLite Database for local persistence**  
-✅ **Lucide Icons + Tailwind Styling**
 
 ---
 
@@ -21,7 +19,7 @@ A modern, responsive **Workout Tracking Web App** built with **React + Node.js +
 
 | Layer | Technology |
 |--------|-------------|
-| **Frontend** | React, Tailwind CSS, Lucide React Icons |
+| **Frontend** | React, Tailwind CSS|
 | **Backend** | Node.js, Express.js |
 | **Database** | SQLite (via `sqlite3` or Sequelize ORM) |
 | **API Handling** | Axios |
