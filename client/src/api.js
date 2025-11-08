@@ -1,6 +1,8 @@
 import axios from "axios";
 
-const API_BASE = "http://localhost:3002/api";
+// Use environment variable in production, fallback to localhost for dev
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL;
 const WORKOUT_URL = `${API_BASE}/workouts`;
 const AUTH_URL = `${API_BASE}/auth`;
 
