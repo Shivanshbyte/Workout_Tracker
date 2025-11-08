@@ -1,9 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
+const auth = require("../middleware/auth"); // ✅ import JWT middleware
 
-// 🧠 Get all workouts with their exercises and sets
-router.get("/", (req, res) => {
+// 🧠 Get all workouts for the logged-in user (with exercises + sets)
+router.get("/", auth, (req, res) => {
+  const userId = req.user.id; // ✅ from JWT
+
   const query = `
     SELECT 
       w.id AS workout_id,
@@ -19,10 +22,11 @@ router.get("/", (req, res) => {
     FROM workouts w
     LEFT JOIN exercises e ON w.id = e.workout_id
     LEFT JOIN sets s ON e.id = s.exercise_id
+    WHERE w.user_id = ?   -- ✅ only user's workouts
     ORDER BY w.date DESC, w.id DESC, e.id, s.count
   `;
 
-  db.all(query, [], (err, rows) => {
+  db.all(query, [userId], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
 
     const workoutsMap = {};
@@ -66,8 +70,9 @@ router.get("/", (req, res) => {
   });
 });
 
-// 🏋️‍♂️ Add a new workout (with exercises + multiple sets)
-router.post("/", (req, res) => {
+// 🏋️‍♂️ Add a new workout (for logged-in user)
+router.post("/", auth, (req, res) => {
+  const userId = req.user.id; // ✅ attach user_id
   const { date, muscle_group, exercises } = req.body;
 
   if (!date || !muscle_group || !Array.isArray(exercises)) {
@@ -79,8 +84,8 @@ router.post("/", (req, res) => {
 
   db.serialize(() => {
     db.run(
-      `INSERT INTO workouts (date, muscle_group) VALUES (?, ?)`,
-      [dateString, muscleGroupStr],
+      `INSERT INTO workouts (user_id, date, muscle_group) VALUES (?, ?, ?)`,
+      [userId, dateString, muscleGroupStr],
       function (err) {
         if (err) return res.status(500).json({ error: err.message });
 
@@ -95,7 +100,6 @@ router.post("/", (req, res) => {
               if (err2) console.error("Exercise insert error:", err2.message);
               const exerciseId = this.lastID;
 
-              // Now insert individual sets
               (ex.sets || []).forEach((set, index) => {
                 db.run(
                   `INSERT INTO sets (exercise_id, count, weight, reps) VALUES (?, ?, ?, ?)`,
@@ -115,130 +119,127 @@ router.post("/", (req, res) => {
   });
 });
 
-// ✏️ Update a workout and its exercises + sets
-router.put("/:id", (req, res) => {
+// ✏️ Update a workout (only if it belongs to user)
+router.put("/:id", auth, (req, res) => {
   const { id } = req.params;
+  const userId = req.user.id;
   const { date, muscle_group, exercises } = req.body;
 
-  db.serialize(() => {
-    db.run(
-      `UPDATE workouts SET date = ?, muscle_group = ? WHERE id = ?`,
-      [date, JSON.stringify(muscle_group), id],
-      (err) => {
-        if (err) return res.status(500).json({ error: err.message });
+  // Check ownership
+  db.get(`SELECT * FROM workouts WHERE id = ? AND user_id = ?`, [id, userId], (err, workout) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!workout) return res.status(404).json({ error: "Workout not found or not yours" });
 
-        // Delete all old exercises + sets (cascade handles sets)
-        db.run(`DELETE FROM exercises WHERE workout_id = ?`, [id], (err2) => {
+    db.serialize(() => {
+      db.run(
+        `UPDATE workouts SET date = ?, muscle_group = ? WHERE id = ?`,
+        [date, JSON.stringify(muscle_group), id],
+        (err2) => {
           if (err2) return res.status(500).json({ error: err2.message });
 
-          
+          db.run(`DELETE FROM exercises WHERE workout_id = ?`, [id], (err3) => {
+            if (err3) return res.status(500).json({ error: err3.message });
 
-          // Reinsert all exercises and sets
-          exercises.forEach((ex) => {
-            db.run(
-              `INSERT INTO exercises (workout_id, name, total_sets) VALUES (?, ?, ?)`,
-              [id, ex.name, ex.totalSets],
-              function (err3) {
-                if (err3) console.error("Exercise insert error:", err3.message);
-                const exerciseId = this.lastID;
+            exercises.forEach((ex) => {
+              db.run(
+                `INSERT INTO exercises (workout_id, name, total_sets) VALUES (?, ?, ?)`,
+                [id, ex.name, ex.totalSets],
+                function (err4) {
+                  if (err4)
+                    console.error("Exercise insert error:", err4.message);
+                  const exerciseId = this.lastID;
 
-                (ex.sets || []).forEach((set, index) => {
-                  db.run(
-                    `INSERT INTO sets (exercise_id, count, weight, reps) VALUES (?, ?, ?, ?)`,
-                    [exerciseId, index + 1, set.weight, set.reps],
-                    (err4) => {
-                      if (err4)
-                        console.error("Set insert error:", err4.message);
-                    }
-                  );
-                });
-              }
-            );
+                  (ex.sets || []).forEach((set, index) => {
+                    db.run(
+                      `INSERT INTO sets (exercise_id, count, weight, reps) VALUES (?, ?, ?, ?)`,
+                      [exerciseId, index + 1, set.weight, set.reps],
+                      (err5) => {
+                        if (err5)
+                          console.error("Set insert error:", err5.message);
+                      }
+                    );
+                  });
+                }
+              );
+            });
+
+            res.json({ message: "Workout updated successfully" });
           });
-
-          res.json({ message: "Workout updated successfully" });
-        });
-      }
-    );
-  });
-});
-
-
-router.get("/:id", (req, res) => {
-  const { id } = req.params;
-
-  db.serialize(() => {
-    db.get(`SELECT * FROM workouts WHERE id = ?`, [id], (err, workout) => {
-      if (err) return res.status(500).json({ error: err.message });
-      if (!workout) return res.status(404).json({ error: "Workout not found" });
-
-      // Parse muscle group (stored as JSON string)
-      try {
-        workout.muscle_group = JSON.parse(workout.muscle_group);
-      } catch {
-        workout.muscle_group = [];
-      }
-
-      // Fetch exercises for that workout
-      db.all(
-        `SELECT * FROM exercises WHERE workout_id = ?`,
-        [id],
-        (err2, exercises) => {
-          if (err2) return res.status(500).json({ error: err2.message });
-
-          const exerciseIds = exercises.map((ex) => ex.id);
-          if (exerciseIds.length === 0) {
-            workout.exercises = [];
-            return res.json(workout);
-          }
-
-          // Fetch sets for all exercises
-          db.all(
-            `SELECT * FROM sets WHERE exercise_id IN (${exerciseIds
-              .map(() => "?")
-              .join(",")})`,
-            exerciseIds,
-            (err3, sets) => {
-              if (err3) return res.status(500).json({ error: err3.message });
-
-              // 🧩 Format exercises for frontend
-              const formattedExercises = exercises.map((ex) => {
-                const exSets = sets
-                  .filter((s) => s.exercise_id === ex.id)
-                  .map((set) => ({
-                    count: set.count,
-                    weight: set.weight,
-                    reps: set.reps,
-                  }));
-
-                return {
-                  name: ex.name,
-                  totalSets: ex.total_sets,
-                  sets: exSets.length > 0
-                    ? exSets
-                    : [{ count: "", weight: "", reps: "" }],
-                };
-              });
-
-              workout.exercises = formattedExercises;
-              res.json(workout);
-            }
-          );
         }
       );
     });
   });
 });
 
-
-
-// 🗑 Delete a workout (cascade deletes exercises + sets)
-router.delete("/:id", (req, res) => {
+// 🧠 Get a single workout by ID (only if owned by user)
+router.get("/:id", auth, (req, res) => {
   const { id } = req.params;
+  const userId = req.user.id;
 
-  db.run(`DELETE FROM workouts WHERE id = ?`, [id], function (err) {
+  db.get(`SELECT * FROM workouts WHERE id = ? AND user_id = ?`, [id, userId], (err, workout) => {
     if (err) return res.status(500).json({ error: err.message });
-    res.json({ deleted: this.changes });
+    if (!workout) return res.status(404).json({ error: "Workout not found or not yours" });
+
+    try {
+      workout.muscle_group = JSON.parse(workout.muscle_group);
+    } catch {
+      workout.muscle_group = [];
+    }
+
+    db.all(`SELECT * FROM exercises WHERE workout_id = ?`, [id], (err2, exercises) => {
+      if (err2) return res.status(500).json({ error: err2.message });
+
+      const exerciseIds = exercises.map((ex) => ex.id);
+      if (exerciseIds.length === 0) {
+        workout.exercises = [];
+        return res.json(workout);
+      }
+
+      db.all(
+        `SELECT * FROM sets WHERE exercise_id IN (${exerciseIds.map(() => "?").join(",")})`,
+        exerciseIds,
+        (err3, sets) => {
+          if (err3) return res.status(500).json({ error: err3.message });
+
+          const formattedExercises = exercises.map((ex) => {
+            const exSets = sets
+              .filter((s) => s.exercise_id === ex.id)
+              .map((set) => ({
+                count: set.count,
+                weight: set.weight,
+                reps: set.reps,
+              }));
+
+            return {
+              name: ex.name,
+              totalSets: ex.total_sets,
+              sets: exSets.length > 0
+                ? exSets
+                : [{ count: "", weight: "", reps: "" }],
+            };
+          });
+
+          workout.exercises = formattedExercises;
+          res.json(workout);
+        }
+      );
+    });
+  });
+});
+
+// 🗑 Delete a workout (only if owned by user)
+router.delete("/:id", auth, (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.id;
+
+  db.get("SELECT * FROM workouts WHERE id = ? AND user_id = ?", [id, userId], (err, workout) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!workout) return res.status(404).json({ error: "Workout not found or not yours" });
+
+    db.run(`DELETE FROM workouts WHERE id = ?`, [id], function (err2) {
+      if (err2) return res.status(500).json({ error: err2.message });
+      res.json({ deleted: this.changes });
+    });
   });
 });
 

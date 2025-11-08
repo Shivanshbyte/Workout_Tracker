@@ -13,7 +13,7 @@ import { useParams } from "react-router-dom";
 const AddWorkout = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const isEditMode = id !== "add";
+  const isEditMode = !!id && !isNaN(Number(id));
   console.log("id",id);
 
   useEffect(() => {
@@ -129,12 +129,16 @@ const AddWorkout = () => {
       })),
     };
 
+    console.log("payload ",payload)
+
     try {
       if (id) {
         await updateWorkout(id, payload);
       } else {
         await addWorkout(payload);
       }
+      setForm({ date: "", muscle_group: [], exercises: [] });
+      setExercises([initialExercise]);
       navigate("/");
     } catch (error) {
       console.error("Error saving workout:", error);

@@ -1,15 +1,23 @@
-const express = require('express');
-const cors = require('cors');
-const bodyParser = require('express').json;
-const workoutsRouter = require('./routes/workouts');
+const express = require("express");
+const cors = require("cors");
+const workoutsRouter = require("./routes/workouts");
+const authRouter = require("./routes/auth");
 
 const app = express();
 const PORT = 3002;
 
+// ✅ Middleware setup
 app.use(cors());
-app.use(bodyParser());
-app.use('/api/workouts', workoutsRouter);
+app.use(express.json()); // use built-in JSON parser
 
-app.get('/', (req, res) => res.json({ message: 'BillionaireFit API running' }));
+// ✅ Routes
+app.use("/api/auth", authRouter);
+app.use("/api/workouts", workoutsRouter);
 
-app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
+// ✅ Root route
+app.get("/", (req, res) => res.json({ message: "BillionaireFit API running" }));
+
+// ✅ Server start
+app.listen(PORT, () =>
+  console.log(`✅ Server running on http://localhost:${PORT}`)
+);

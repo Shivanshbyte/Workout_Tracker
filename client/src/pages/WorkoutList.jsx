@@ -58,6 +58,17 @@ const WorkoutList = () => {
           <PlusCircle size={20} />
           <span className="hidden sm:block">Add New</span>
         </button>
+
+        <button
+          onClick={() => {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            navigate("/login");
+          }}
+          className="text-red-400 hover:text-red-500 transition"
+        >
+          Logout
+        </button>
       </div>
 
       {/* Workout List */}
