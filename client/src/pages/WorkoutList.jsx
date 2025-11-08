@@ -12,9 +12,20 @@ import "../styles.css";
 
 const WorkoutList = () => {
   const [workouts, setWorkouts] = useState([]);
+  const [userName, setUserName] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUserName(parsedUser.name || parsedUser.username || "");
+      } catch (error) {
+        console.error("Error parsing user from localStorage:", error);
+      }
+    }
+
     fetchWorkouts();
   }, []);
 
@@ -47,13 +58,31 @@ const WorkoutList = () => {
     <div className="min-h-screen min-w-screen  bg-slate-900 text-slate-100 flex flex-col items-center justify-center px-4 py-8">
       {/* Header */}
       <div className="w-full max-w-2xl flex justify-between items-center mb-6">
-        <h1 className="text-2xl! md:text-5xl! font-bold! flex! items-center! gap-2! text-sky-300!">
-          Your Workouts
-          <Dumbbell className="text-sky-400" size={28} />
+        <h1 className="flex flex-col items-start md:items-start gap-1 text-sky-300 font-bold">
+          {userName ? (
+            <>
+              {/* 👋 Greeting line */}
+              <span className="text-lg md:text-xl font-medium  text-sky-400">
+                Hi {userName.charAt(0).toUpperCase() + userName.slice(1)} 👋
+              </span>
+
+              {/* 🏋️ Main heading */}
+              <span className="text-xl md:text-4xl flex items-center gap-2  text-sky-400">
+                Your Workouts
+                <Dumbbell className="text-sky-400" size={25} />
+              </span>
+            </>
+          ) : (
+            <span className="text-xl md:text-4xl flex items-center gap-2">
+              Your Workouts
+              <Dumbbell className="text-sky-400" size={25} />
+            </span>
+          )}
         </h1>
+
         <button
           onClick={handleAddClick}
-          className="flex items-center gap-2 bg-sky-600 hover:bg-sky-500 transition text-white px-4 py-2 rounded-xl font-medium shadow-md"
+          className="flex items-center me-1! bg-sky-600 hover:bg-sky-500 transition text-white px-4 py-2 rounded-xl font-medium shadow-md"
         >
           <PlusCircle size={20} />
           <span className="hidden sm:block">Add New</span>
