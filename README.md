@@ -55,3 +55,39 @@ workout-tracker/
 │   └── package.json
 │
 └── README.md
+
+
+
+--- ## ⚙️ Installation & Setup ### 1️⃣ Clone the repository
+bash
+git clone https://github.com/yourusername/workout-tracker.git
+cd workout-tracker
+
+2️⃣ Install dependencies
+
+Frontend
+
+cd client
+npm install
+
+
+Backend
+
+cd ../server
+npm install
+
+3️⃣ Run the app locally
+
+Start the backend server:
+
+npm start
+
+
+(Default port: 3002)
+
+Then start the frontend:
+
+cd ../client
+npm run dev
+
+(Default port: 5173 or whichever Vite chooses)
