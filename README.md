@@ -33,27 +33,28 @@ A modern, responsive **Workout Tracking Web App** built with **React + Node.js +
 
 workout-tracker/
 │
-├── client/ # React Frontend
-│ ├── src/
-│ │ ├── components/
-│ │ │ ├── WorkoutList.jsx
-│ │ │ ├── WorkoutForm.jsx
-│ │ │ └── EditWorkout.jsx
-│ │ ├── api.js
-│ │ ├── App.jsx
-│ │ ├── index.js
-│ │ └── styles.css
-│ └── package.json
+├── client/                  # React Frontend
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── WorkoutList.jsx
+│   │   │   ├── WorkoutForm.jsx
+│   │   │   └── EditWorkout.jsx
+│   │   ├── api.js
+│   │   ├── App.jsx
+│   │   ├── index.js
+│   │   └── styles.css
+│   └── package.json
 │
-├── server/ # Node.js + Express Backend
-│ ├── index.js
-│ ├── db.js
-│ ├── workouts.db
-│ ├── routes/
-│ │ └── workoutRoutes.js
-│ └── package.json
+├── server/                  # Node.js + Express Backend
+│   ├── index.js
+│   ├── db.js
+│   ├── workouts.db
+│   ├── routes/
+│   │   └── workoutRoutes.js
+│   └── package.json
 │
 └── README.md
+
 
 
 ---
