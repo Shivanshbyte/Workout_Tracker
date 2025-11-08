@@ -1,6 +1,6 @@
 # 🏋️‍♂️ Workout Tracker App
 
-A modern, responsive **Workout Tracking Web App** built with **React + Node.js + SQLite**, where users can **log, edit, and track their workouts** by muscle groups and exercises — all in a clean, minimal UI.
+A modern, responsive **Workout Tracking Web App** built with **React + Node.js + SQLite**, where users can **log, edit, and track their workouts** by muscle groups and exercises , all in a clean, minimal UI.
 
 ---
 
@@ -58,7 +58,9 @@ workout-tracker/
 
 
 
---- ## ⚙️ Installation & Setup ### 1️⃣ Clone the repository
+--- ## ⚙️ Installation & Setup ### 
+
+1️⃣ Clone the repository
 bash
 git clone https://github.com/yourusername/workout-tracker.git
 cd workout-tracker
@@ -70,7 +72,6 @@ Frontend
 cd client
 npm install
 
-
 Backend
 
 cd ../server
@@ -81,13 +82,10 @@ npm install
 Start the backend server:
 
 npm start
-
-
 (Default port: 3002)
 
 Then start the frontend:
 
 cd ../client
 npm run dev
-
 (Default port: 5173 or whichever Vite chooses)
