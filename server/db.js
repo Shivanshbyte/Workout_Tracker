@@ -1,5 +1,6 @@
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
+const fs = require("fs"); 
 
 // const dbPath = path.resolve(__dirname, "workouts.db");
 // const db = new sqlite3.Database(dbPath);
@@ -16,7 +17,6 @@ if (!fs.existsSync(dataDir)) {
 const dbPath = path.join(dataDir, "workouts.db");
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) console.error("❌ Error connecting to database:", err);
-  else console.log("✅ Connected to SQLite DB at:", dbPath);
 });
 
 db.serialize(() => {
