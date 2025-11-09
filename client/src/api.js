@@ -2,9 +2,9 @@ import axios from "axios";
 
 // Use environment variable in production, fallback to localhost for dev
 const API_BASE =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:3002/api";
-const WORKOUT_URL = `${API_BASE}/workouts`;
-const AUTH_URL = `${API_BASE}/auth`;
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3002";
+const WORKOUT_URL = `${API_BASE}/api/workouts`;
+const AUTH_URL = `${API_BASE}/api/auth`;
 
 axios.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
