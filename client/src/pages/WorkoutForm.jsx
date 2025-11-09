@@ -322,20 +322,20 @@ const AddWorkout = () => {
                         />
 
                         {/* Buttons */}
-                        <div className="flex ms-2 gap-2 w-[18%]! justify-end">
+                        <div className="flex ms-2 gap-2 w-[18%]! justify-end!">
                           <button
                             type="button"
                             onClick={() => addSet(exIndex)}
                             className="p-1.5 rounded-lg hover:bg-sky-500 transition-all"
                           >
-                            <Plus size={18} />
+                            <Plus size={10} className="md:size-5" />
                           </button>
                           <button
                             type="button"
                             onClick={() => removeSet(exIndex, setIndex)}
                             className="p-1.5 rounded-lg hover:bg-red-500 transition-all"
                           >
-                            <Minus size={18} />
+                            <Minus size={10} className="md:size-5"  />
                           </button>
                         </div>
                       </div>

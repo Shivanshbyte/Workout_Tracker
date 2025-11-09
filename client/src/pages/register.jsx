@@ -6,7 +6,6 @@ const Register = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState("");
-  
 
   // ✅ Redirect logged-in users to workout list
   useEffect(() => {
@@ -17,9 +16,13 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      console.log("This is form",form)
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      if (!emailRegex.test(form.email)) {
+        alert("Please enter a valid email address");
+        return;
+      }
       await registerUser(form);
-      console.log("API called")
       navigate("/login");
     } catch (err) {
       setError(err.response?.data?.error || "Registration failed");
@@ -27,7 +30,7 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-slate-900 text-white">
+    <div className="w-screen min-h-screen flex flex-col justify-center items-center bg-slate-900 text-white">
       <div className="bg-slate-800 p-6 rounded-2xl w-[90%] max-w-sm border border-slate-700 shadow-md">
         <h1 className="text-2xl font-semibold mb-4 text-center">Register</h1>
         {error && <p className="text-red-400 text-sm mb-2">{error}</p>}

@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Use environment variable in production, fallback to localhost for dev
 const API_BASE =
-  import.meta.env.VITE_API_BASE_URL;
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3002/api";
 const WORKOUT_URL = `${API_BASE}/workouts`;
 const AUTH_URL = `${API_BASE}/auth`;
 
@@ -15,6 +15,7 @@ axios.interceptors.request.use((config) => {
 });
 
 // ✅ AUTH ROUTES
+// console.log(API_BASE);
 export const registerUser = (data) => axios.post(`${AUTH_URL}/register`, data);
 export const loginUser = (data) => axios.post(`${AUTH_URL}/login`, data);
 
