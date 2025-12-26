@@ -13,8 +13,8 @@ import { useParams } from "react-router-dom";
 const AddWorkout = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const isEditMode = !!id && !isNaN(Number(id));
-  console.log("id",id);
+const isEditMode = Boolean(id); 
+  // console.log("id",id);
 
   useEffect(() => {
     if (id) {

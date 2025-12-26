@@ -120,7 +120,7 @@ const WorkoutList = () => {
             .sort((a, b) => new Date(b.date) - new Date(a.date)) // 🔹 Sort: latest first
             .map((w) => (
               <li
-                key={w.id}
+                key={w._id}
                 className="bg-slate-800/70 p-4 rounded-2xl border border-slate-700 hover:border-sky-500 transition shadow-md"
               >
                 {/* Workout Header */}
@@ -143,7 +143,7 @@ const WorkoutList = () => {
                   <div className="flex flex-col items-center gap-2">
                     {/* 🗑️ Delete Button */}
                     <button
-                      onClick={() => handleDelete(w.id)}
+                      onClick={() => handleDelete(w._id)}
                       className="text-red-400 hover:text-red-500 transition"
                       title="Delete workout"
                     >
@@ -152,7 +152,7 @@ const WorkoutList = () => {
 
                     {/* ✏️ Update Button */}
                     <button
-                      onClick={() => handleEdit(w.id)}
+                      onClick={() => handleEdit(w._id)}
                       className="text-sky-400 hover:text-sky-500 transition"
                       title="Edit workout"
                     >
