@@ -6,27 +6,39 @@ const Register = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   // ✅ Redirect logged-in users to workout list
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) navigate("/");
-  }, [navigate]);
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      setLoading(true);
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
       if (!emailRegex.test(form.email)) {
         alert("Please enter a valid email address");
         return;
       }
-      await registerUser(form);
-      navigate("/login");
+      if (form.name.trim().length < 2) {
+        setError("Name must be at least 2 characters long");
+        return;
+      }
+      if (form.password.length < 6) {
+        setError("Password must be at least 6 characters long");
+        return;
+      }
+      const res = await registerUser(form);
+
+      // save token
+      localStorage.setItem("token", res.data.token);
+
+      navigate("/");
     } catch (err) {
       setError(err.response?.data?.error || "Registration failed");
     }
+    finally { setLoading(false); }
   };
 
   return (
@@ -58,9 +70,10 @@ const Register = () => {
           />
           <button
             type="submit"
+             disabled={loading}
             className="bg-sky-600 hover:bg-sky-500 p-2 rounded font-semibold"
           >
-            Register
+            {loading ? "Registering..." : "Register"}
           </button>
         </form>
         <p className="text-slate-400 text-sm text-center mt-3">

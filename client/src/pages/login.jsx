@@ -1,18 +1,14 @@
 import { useState, useEffect } from "react";
 import { loginUser } from "../api";
 import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../components/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  // ✅ Redirect if already logged in
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) navigate("/");
-  }, [navigate]);
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,9 +19,8 @@ const Login = () => {
 
     try {
       const res = await loginUser(form);
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      navigate("/");
+      login(res.data.user, res.data.token);
+navigate("/", { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || "Login failed");
     } finally {

@@ -1,22 +1,24 @@
 const jwt = require("jsonwebtoken");
-require("dotenv").config();
 
 const auth = (req, res, next) => {
-  const header = req.headers.authorization;
+  const authHeader = req.headers.authorization;
 
-  if (!header)
-    return res.status(401).json({ error: "Authorization token missing" });
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
 
-  const token = header.split(" ")[1]; // "Bearer <token>"
-  if (!token) return res.status(401).json({ error: "Invalid token format" });
+  const token = authHeader.split(" ")[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "supersecretkey");
-    req.user = decoded; // contains { id: userId }
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET not configured");
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = { id: decoded.id }; // keep it minimal
     next();
   } catch (err) {
-    console.error("JWT Error:", err.message);
-    res.status(401).json({ error: "Invalid or expired token" });
+    return res.status(401).json({ error: "Unauthorized" });
   }
 };
 

@@ -14,6 +14,8 @@ axios.interceptors.request.use((config) => {
   return config;
 });
 
+export const getMe = () => axios.get(`${AUTH_URL}/me`);
+
 // ✅ AUTH ROUTES
 // console.log(API_BASE);
 export const registerUser = (data) => axios.post(`${AUTH_URL}/register`, data);
