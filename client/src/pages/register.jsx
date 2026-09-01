@@ -9,7 +9,6 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
 
   // ✅ Redirect logged-in users to workout list
-  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,13 +31,23 @@ const Register = () => {
       const res = await registerUser(form);
 
       // save token
-      localStorage.setItem("token", res.data.token);
+      // localStorage.setItem("token", res.data.token);
 
-      navigate("/");
+      // navigate("/");
+      if (res.data.requiresVerification) {
+        navigate("/verify-otp", {
+          state: {
+            email: res.data.email,
+          },
+        });
+
+        return;
+      }
     } catch (err) {
       setError(err.response?.data?.error || "Registration failed");
+    } finally {
+      setLoading(false);
     }
-    finally { setLoading(false); }
   };
 
   return (
@@ -70,7 +79,7 @@ const Register = () => {
           />
           <button
             type="submit"
-             disabled={loading}
+            disabled={loading}
             className="bg-sky-600 hover:bg-sky-500 p-2 rounded font-semibold"
           >
             {loading ? "Registering..." : "Register"}

@@ -22,6 +22,17 @@ const Login = () => {
       login(res.data.user, res.data.token);
 navigate("/", { replace: true });
     } catch (err) {
+
+       // User exists but email is not verified
+    if (err.response?.data?.requiresVerification) {
+      navigate("/verify-otp", {
+        state: {
+          email: err.response.data.email,
+        },
+      });
+
+      return;
+    }
       setError(err.response?.data?.error || "Login failed");
     } finally {
       setLoading(false);

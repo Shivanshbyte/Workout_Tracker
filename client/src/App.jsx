@@ -1,9 +1,10 @@
 import { Routes, Route } from "react-router-dom";
-import WorkoutList from "./pages/WorkoutList";
+import WorkoutList from "./pages/workoutlist/WorkoutList";
 import AddWorkout from "./pages/WorkoutForm";
 import Login from "./pages/login";
 import Register from "./pages/register";
 import PrivateRoute from "./components/privateRoutes";
+import VerifyOTP from "./pages/VerifyOTP";
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
       {/* Public Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/verify-otp" element={<VerifyOTP />} />
 
       {/* Private Routes */}
       <Route

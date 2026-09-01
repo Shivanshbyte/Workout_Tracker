@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  overflow-x: hidden;
+}
+
 body {
   font-family: sans-serif;
   background: #0f172a;
@@ -12,7 +26,7 @@ body {
 }
 h1 {
   text-align: center;
-  color: #222;
+  color: #7fcbe7;
 }
 .form {
   display: flex;

@@ -2,134 +2,282 @@ import { useState, useEffect } from "react";
 import { addWorkout, getWorkoutById, updateWorkout } from "../api";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import CreatableSelect from "react-select/creatable";
 import { Plus, Minus, Dumbbell, ArrowLeft, X } from "lucide-react";
-import { muscleOptions } from "./WorkoutConfig";
-import { exercisesByMuscle } from "./WorkoutConfig";
-import { customSelectStyles } from "./WorkoutConfig";
-import { useParams } from "react-router-dom";
+import {
+  muscleOptions,
+  exercisesByMuscle,
+  customSelectStyles,
+} from "./WorkoutConfig";
 
 const AddWorkout = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-const isEditMode = Boolean(id); 
-  // console.log("id",id);
 
-  useEffect(() => {
-    if (id) {
-      (async () => {
-        try {
-          const existingWorkout = await getWorkoutById(id);
-          const existingdata = existingWorkout?.data;
-
-          setForm({
-            date: new Date(existingdata.date),
-            muscle_group: existingdata.muscle_group.map((m) => ({
-              value: m,
-              label: m,
-            })),
-          });
-          setExercises(existingdata.exercises);
-        } catch (error) {
-          console.error("Failed to fetch workout for edit:", error);
-        }
-      })();
-    }
-  }, [id]);
+  const isEditMode = Boolean(id);
 
   const today = new Date();
+
+  /* ==================================================
+     FORM STATE
+  ================================================== */
 
   const [form, setForm] = useState({
     date: today,
     muscle_group: [],
-    exercises: [],
   });
 
   const initialExercise = {
     name: "",
-    totalSets: null,
-    sets: [{ count: "", weight: "", reps: "" }],
+    totalSets: "",
+    sets: [
+      {
+        count: "",
+        weight: "",
+        reps: "",
+      },
+    ],
   };
 
   const [exercises, setExercises] = useState([initialExercise]);
+
   const [errors, setErrors] = useState([]);
+
+  /* ==================================================
+     LOAD EXISTING WORKOUT
+  ================================================== */
+
+  useEffect(() => {
+    if (!id) return;
+
+    const loadWorkout = async () => {
+      try {
+        const existingWorkout = await getWorkoutById(id);
+        const existingData = existingWorkout?.data;
+
+        setForm({
+          date: new Date(existingData.date),
+          muscle_group: (existingData.muscle_group || []).map((muscle) => ({
+            value: muscle,
+            label: muscle,
+          })),
+        });
+
+        setExercises(existingData.exercises || []);
+      } catch (error) {
+        console.error("Failed to fetch workout for edit:", error);
+      }
+    };
+
+    loadWorkout();
+  }, [id]);
+
+  /* ==================================================
+     EXERCISE OPTIONS
+  ================================================== */
 
   const getExerciseOptions = (selectedMuscles) => {
     let options = [];
+
     selectedMuscles.forEach((muscle) => {
       options = [...options, ...(exercisesByMuscle[muscle.value] || [])];
     });
+
     return options;
   };
 
+  /* ==================================================
+     EXERCISE HANDLERS
+  ================================================== */
+
   const handleExerciseChange = (index, field, value) => {
-    const newExercises = [...exercises];
-    newExercises[index][field] = value;
-    setExercises(newExercises);
-  };
+    setExercises((prev) => {
+      const updated = [...prev];
 
-  const handleSetChange = (exerciseIndex, setIndex, field, value) => {
-    const newExercises = [...exercises];
-    newExercises[exerciseIndex].sets[setIndex][field] = value;
-    setExercises(newExercises);
-    validateSets(exerciseIndex);
-  };
+      updated[index] = {
+        ...updated[index],
+        [field]: value,
+      };
 
-  const addSet = (exerciseIndex) => {
-    const newExercises = [...exercises];
-    newExercises[exerciseIndex].sets.push({ count: "", weight: "", reps: "" });
-    setExercises(newExercises);
-  };
+      return updated;
+    });
 
-  const removeSet = (exerciseIndex, setIndex) => {
-    const newExercises = [...exercises];
-    newExercises[exerciseIndex].sets.splice(setIndex, 1);
-    setExercises(newExercises);
-    validateSets(exerciseIndex);
+    if (field === "totalSets") {
+      setTimeout(() => validateSets(index), 0);
+    }
   };
 
   const addExercise = () => {
-    setExercises([
-      ...exercises,
-      { name: "", totalSets: 0, sets: [{ count: "", weight: "", reps: "" }] },
+    setExercises((prev) => [
+      ...prev,
+      {
+        name: "",
+        totalSets: "",
+        sets: [
+          {
+            count: "",
+            weight: "",
+            reps: "",
+          },
+        ],
+      },
     ]);
   };
+
   const removeExercise = (index) => {
-    const updatedExercises = [...exercises];
-    updatedExercises.splice(index, 1);
-    setExercises(updatedExercises);
+    setExercises((prev) => prev.filter((_, i) => i !== index));
+
+    setErrors((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const validateSets = (exerciseIndex) => {
-    const totalSets = Number(exercises[exerciseIndex].totalSets || 0);
-    const sumCounts = exercises[exerciseIndex].sets.reduce(
-      (sum, s) => sum + Number(s.count || 0),
-      0
-    );
-    const newErrors = [...errors];
-    newErrors[exerciseIndex] =
-      sumCounts > totalSets ? "Sum of counts exceeds total sets!" : "";
-    setErrors(newErrors);
+  /* ==================================================
+     SET HANDLERS
+  ================================================== */
+
+  const handleSetChange = (exerciseIndex, setIndex, field, value) => {
+    setExercises((prev) => {
+      const updated = [...prev];
+
+      const updatedSets = [...(updated[exerciseIndex].sets || [])];
+
+      updatedSets[setIndex] = {
+        ...updatedSets[setIndex],
+        [field]: value,
+      };
+
+      updated[exerciseIndex] = {
+        ...updated[exerciseIndex],
+        sets: updatedSets,
+      };
+
+      return updated;
+    });
+
+    if (field === "count") {
+      setTimeout(() => validateSets(exerciseIndex), 0);
+    }
   };
+
+  const addSet = (exerciseIndex) => {
+    setExercises((prev) => {
+      const updated = [...prev];
+
+      updated[exerciseIndex] = {
+        ...updated[exerciseIndex],
+        sets: [
+          ...(updated[exerciseIndex].sets || []),
+          {
+            count: "",
+            weight: "",
+            reps: "",
+          },
+        ],
+      };
+
+      return updated;
+    });
+  };
+
+  const removeSet = (exerciseIndex, setIndex) => {
+    setExercises((prev) => {
+      const updated = [...prev];
+
+      const sets = [...(updated[exerciseIndex].sets || [])];
+
+      // Keep at least one set row
+      if (sets.length === 1) {
+        return prev;
+      }
+
+      sets.splice(setIndex, 1);
+
+      updated[exerciseIndex] = {
+        ...updated[exerciseIndex],
+        sets,
+      };
+
+      return updated;
+    });
+
+    setTimeout(() => validateSets(exerciseIndex), 0);
+  };
+
+  /* ==================================================
+     VALIDATION
+  ================================================== */
+
+  const validateSets = (exerciseIndex) => {
+    const exercise = exercises[exerciseIndex];
+
+    if (!exercise) return;
+
+    const totalSets = Number(exercise.totalSets || 0);
+
+    const sumCounts = (exercise.sets || []).reduce(
+      (sum, set) => sum + Number(set.count || 0),
+      0,
+    );
+
+    setErrors((prev) => {
+      const updated = [...prev];
+
+      updated[exerciseIndex] =
+        totalSets > 0 && sumCounts > totalSets
+          ? "Set count is greater than total sets."
+          : "";
+
+      return updated;
+    });
+  };
+
+  /* ==================================================
+     SUBMIT
+  ================================================== */
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validate all exercises before submitting
+    let hasError = false;
+
+    exercises.forEach((_, index) => {
+      validateSets(index);
+
+      const exercise = exercises[index];
+
+      const totalSets = Number(exercise.totalSets || 0);
+
+      const sumCounts = (exercise.sets || []).reduce(
+        (sum, set) => sum + Number(set.count || 0),
+        0,
+      );
+
+      if (totalSets > 0 && sumCounts > totalSets) {
+        hasError = true;
+      }
+    });
+
+    if (hasError) {
+      return;
+    }
+
     const payload = {
       date: form.date,
-      muscle_group: form.muscle_group.map((m) => m.value),
-      exercises: exercises.map((ex) => ({
-        name: ex.name,
-        totalSets: ex.totalSets,
-        sets: ex.sets.map((s) => ({
-          count: s.count,
-          weight: s.weight,
-          reps: s.reps,
+
+      muscle_group: form.muscle_group.map((muscle) => muscle.value),
+
+      exercises: exercises.map((exercise) => ({
+        name: exercise.name,
+        totalSets: exercise.totalSets,
+
+        sets: (exercise.sets || []).map((set) => ({
+          count: set.count,
+          weight: set.weight,
+          reps: set.reps,
         })),
       })),
     };
-
-    console.log("payload ",payload)
 
     try {
       if (id) {
@@ -137,240 +285,713 @@ const isEditMode = Boolean(id);
       } else {
         await addWorkout(payload);
       }
-      setForm({ date: "", muscle_group: [], exercises: [] });
-      setExercises([initialExercise]);
+
       navigate("/");
     } catch (error) {
       console.error("Error saving workout:", error);
     }
   };
 
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault();
-  //   const payload = {
-  //     date: form.date,
-  //     muscle_group: form.muscle_group.map((m) => m.value),
-  //     exercises: exercises.map((ex) => ({
-  //       name: ex.name,
-  //       totalSets: ex.totalSets,
-  //       sets: ex.sets.map((s) => ({
-  //         count: s.count,
-  //         weight: s.weight,
-  //         reps: s.reps,
-  //       })),
-  //     })),
-  //   };
-  //   try {
-  //     await addWorkout(payload);
-  //     setForm({ date: "", muscle_group: [], exercises: [] });
-  //     setExercises([initialExercise]);
-  //     navigate("/");
-  //   } catch (error) {
-  //     console.error("Error adding workout:", error);
-  //   }
-  // };
+  /* ==================================================
+     UI
+  ================================================== */
 
   return (
-    <div className="w-screen min-h-screen bg-slate-900 flex items-center justify-center px-4 py-6">
-      <div className="bg-slate-800 w-full max-w-2xl p-6 rounded-2xl shadow-lg border border-slate-700 overflow-y-auto max-h-[95vh]">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <h2 className="text-2xl font-semibold text-center text-white mb-2">
-             {isEditMode ? "Edit Workout" : "Add New Workout"}
-          </h2>
+    <div
+      className="
+        min-h-[100dvh]
+        w-full
+        bg-slate-950
+        text-slate-100
+        overflow-x-hidden
+      "
+    >
+      {/* ==================================================
+          CENTERED APP SHELL
+      ================================================== */}
 
-          {/* Date */}
-          <DatePicker
-            selected={form.date}
-            onChange={(date) => setForm({ ...form, date })}
-            dateFormat="dd/MM/yyyy"
-            placeholderText="Select Date"
-            maxDate={today} // ✅ restrict to today and before
-            className="border mb-2 border-slate-600 bg-slate-700 text-white rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-sky-500"
-            popperPlacement="bottom"
-            showPopperArrow={false}
-            calendarClassName="bg-slate-800 text-white rounded-lg"
-          />
+      <div
+        className="
+          min-h-[100dvh]
+          w-full
+          flex
+          justify-center
+        "
+      >
+        <div
+          className="
+            w-full
+            max-w-[480px]
+            min-w-0
+            min-h-[100dvh]
+            px-4
+            sm:px-6
+            py-5
+            pb-8
+            box-border
+          "
+        >
+          {/* ==================================================
+              HEADER
+          ================================================== */}
 
-          {/* Muscle Group */}
-          <CreatableSelect
-            isMulti
-            options={muscleOptions}
-            value={form.muscle_group}
-            onChange={(selected) =>
-              setForm({ ...form, muscle_group: selected })
-            }
-            placeholder="Select or enter muscle group..."
-            styles={customSelectStyles}
-            className="w-full"
-          />
-
-          {/* Add Exercise Button */}
-          <button
-            type="button"
-            onClick={addExercise}
-            className="self-end bg-sky-700 hover:bg-sky-600 text-white rounded-lg px-2 py-1 text-sm transition-all"
-          >
-            Add Exercise
-          </button>
-
-          {/* Exercises */}
-          {exercises?.map((exercise, exIndex) => (
-            <div
-              key={exIndex}
-              className="w-full bg-slate-700 p-3 rounded-xl flex flex-col gap-3"
+          <header className="mb-6">
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              className="
+                inline-flex
+                items-center
+                gap-1.5
+                text-xs
+                text-slate-500
+                hover:text-slate-300
+                transition
+                mb-4
+              "
             >
-              {/* Exercise header */}
-              <div className="flex flex-wrap items-center gap-2">
-                <CreatableSelect
-                  options={getExerciseOptions(form.muscle_group)}
-                  value={
-                    exercise.name
-                      ? { value: exercise.name, label: exercise.name }
-                      : null
-                  }
-                  onChange={(selected) =>
-                    handleExerciseChange(exIndex, "name", selected?.value)
-                  }
-                  placeholder="Select or enter exercises..."
-                  className="flex-1"
-                  styles={customSelectStyles}
-                />
-                <button
-                  type="button"
-                  onClick={() => removeExercise(exIndex)} // ← create this handler
-                  className="bg-transparent! text-red-400 hover:text-red-500 transition"
-                  title="Remove Exercise"
-                >
-                  <X size={14} />
-                </button>
+              <ArrowLeft size={15} />
+
+              <span>Back to workouts</span>
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div
+                className="
+                  w-10
+                  h-10
+                  shrink-0
+                  rounded-xl
+                  bg-sky-400/10
+                  flex
+                  items-center
+                  justify-center
+                "
+              >
+                <Dumbbell size={20} className="text-sky-400" />
               </div>
-              <div className="flex flex-col md:flex-row items-start md:items-center gap-3 w-full">
-                {/* Total Sets Input */}
-                <input
-                  type="number"
-                  placeholder="Total Sets"
-                  value={exercise.totalSets}
-                  onChange={(e) => {
-                    handleExerciseChange(exIndex, "totalSets", e.target.value),
-                      validateSets(exIndex);
-                  }}
-                  className="w-[90%] md:w-32 md:me-4 me-6 border border-slate-600 bg-slate-800 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                />
 
-                {/* Sets Container */}
-                <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full">
-                  {/* Sets Container */}
-                  <div className="flex flex-col gap-2 w-full">
-                    {exercise.sets.map((set, setIndex) => (
-                      <div
-                        key={setIndex}
-                        className="flex items-center justify-between"
-                      >
-                        {/* Count */}
-                        <input
-                          type="number"
-                          placeholder="Count"
-                          min="1"
-                          value={set.count}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (value === "" || Number(value) > 0) {
-                              handleSetChange(
-                                exIndex,
-                                setIndex,
-                                "count",
-                                value
-                              );
-                            }
-                          }}
-                          className="w-[20%] sm:w-[18%] border border-slate-600 bg-slate-800 text-white rounded-lg px-2 py-1 text-center text-sm focus:ring-1 focus:ring-sky-500"
-                        />
+              <div className="min-w-0">
+                <h1 className="text-xl font-semibold text-white">
+                  {isEditMode ? "Edit Workout" : "New Workout"}
+                </h1>
 
-                        {/* Weight */}
-                        <input
-                          type="number"
-                          placeholder="Weight"
-                          min="1"
-                          value={set.weight}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (value === "" || Number(value) > 0) {
-                              handleSetChange(
-                                exIndex,
-                                setIndex,
-                                "weight",
-                                value
-                              );
-                            }
-                          }}
-                          className="w-[20%] sm:w-[18%] border border-slate-600 bg-slate-800 text-white rounded-lg px-2 py-1 text-center text-sm focus:ring-1 focus:ring-sky-500"
-                        />
-
-                        {/* Reps */}
-                        <input
-                          type="number"
-                          placeholder="Reps"
-                          min="1"
-                          value={set.reps}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (value === "" || Number(value) > 0) {
-                              handleSetChange(exIndex, setIndex, "reps", value);
-                            }
-                          }}
-                          className="w-[20%] sm:w-[18%] border border-slate-600 bg-slate-800 text-white rounded-lg px-2 py-1 text-center text-sm focus:ring-1 focus:ring-sky-500"
-                        />
-
-                        {/* Buttons */}
-                        <div className="flex ms-2 gap-2 w-[18%]! justify-end!">
-                          <button
-                            type="button"
-                            onClick={() => addSet(exIndex)}
-                            className="p-1.5 rounded-lg hover:bg-sky-500 transition-all"
-                          >
-                            <Plus size={10} className="md:size-5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => removeSet(exIndex, setIndex)}
-                            className="p-1.5 rounded-lg hover:bg-red-500 transition-all"
-                          >
-                            <Minus size={10} className="md:size-5"  />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-
-                    {errors[exIndex] && (
-                      <div className="text-red-400 text-sm mt-1">
-                        {errors[exIndex]}
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {isEditMode
+                    ? "Update your workout details"
+                    : "Log your training session"}
+                </p>
               </div>
             </div>
-          ))}
+          </header>
 
-          {/* Submit */}
-          <button
-            type="submit"
-            onClick={(e) => handleSubmit(e)}
-            className="mt-3 bg-sky-600 hover:bg-sky-500 text-white font-semibold py-2 rounded-lg transition-all shadow-md"
-          >
-            
-            {isEditMode ? "Update Workout" : "Save Workout"}
-          </button>
+          {/* ==================================================
+              FORM
+          ================================================== */}
 
-          {/* Back */}
-          <button
-            type="button"
-            onClick={() => navigate("/")}
-            className="text-slate-400 hover:text-sky-400 flex items-center justify-center gap-1 py-1 text-sm transition-all"
-          >
-            <ArrowLeft size={16} /> Back to List
-          </button>
-        </form>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* ==================================================
+                BASIC DETAILS
+            ================================================== */}
+
+            <section>
+              <div className="mb-2">
+                <p className="text-[10px] uppercase tracking-wider text-slate-600 font-medium">
+                  Workout details
+                </p>
+              </div>
+
+              <div
+                className="
+                  bg-slate-900/60
+                  border
+                  border-slate-800
+                  rounded-2xl
+                  p-4
+                  space-y-4
+                "
+              >
+                {/* Date */}
+
+                <div>
+                  <label
+                    htmlFor="workout-date"
+                    className="
+                      block
+                      text-xs
+                      font-medium
+                      text-slate-400
+                      mb-1.5
+                    "
+                  >
+                    Date
+                  </label>
+
+                  <DatePicker
+                    id="workout-date"
+                    selected={form.date}
+                    onChange={(date) =>
+                      setForm({
+                        ...form,
+                        date,
+                      })
+                    }
+                    dateFormat="dd/MM/yyyy"
+                    placeholderText="Select date"
+                    maxDate={today}
+                    popperPlacement="bottom"
+                    showPopperArrow={false}
+                    className="
+                      w-full
+                      h-10
+                      box-border
+                      bg-slate-800/70
+                      border
+                      border-slate-700
+                      text-slate-200
+                      rounded-xl
+                      px-3
+                      text-sm
+                      outline-none
+                      focus:border-sky-500/60
+                      focus:ring-2
+                      focus:ring-sky-500/10
+                      transition
+                    "
+                  />
+                </div>
+
+                {/* Muscle groups */}
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                    Muscle groups
+                  </label>
+
+                  <CreatableSelect
+                    isMulti
+                    options={muscleOptions}
+                    value={form.muscle_group}
+                    onChange={(selected) =>
+                      setForm({
+                        ...form,
+                        muscle_group: selected || [],
+                      })
+                    }
+                    placeholder="Chest, back, legs..."
+                    styles={customSelectStyles}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            </section>
+
+            {/* ==================================================
+                EXERCISES
+            ================================================== */}
+
+            <section>
+              <div className="flex items-end justify-between mb-2">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-slate-600 font-medium">
+                    Exercises
+                  </p>
+
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Add the exercises and sets you completed
+                  </p>
+                </div>
+
+                <span className="text-[10px] text-slate-600">
+                  {exercises.length}{" "}
+                  {exercises.length === 1 ? "exercise" : "exercises"}
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {exercises.map((exercise, exIndex) => (
+                  <div
+                    key={exIndex}
+                    className="
+                        bg-slate-900/60
+                        border
+                        border-slate-800
+                        rounded-2xl
+                        overflow-hidden
+                      "
+                  >
+                    {/* ==================================================
+                          EXERCISE HEADER
+                      ================================================== */}
+
+                    <div className="p-3.5">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="
+                              w-7
+                              h-7
+                              shrink-0
+                              rounded-lg
+                              bg-slate-800
+                              flex
+                              items-center
+                              justify-center
+                              text-[11px]
+                              font-medium
+                              text-slate-500
+                            "
+                        >
+                          {exIndex + 1}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <CreatableSelect
+                            options={getExerciseOptions(form.muscle_group)}
+                            value={
+                              exercise.name
+                                ? {
+                                    value: exercise.name,
+                                    label: exercise.name,
+                                  }
+                                : null
+                            }
+                            onChange={(selected) =>
+                              handleExerciseChange(
+                                exIndex,
+                                "name",
+                                selected?.value || "",
+                              )
+                            }
+                            placeholder="Choose exercise..."
+                            styles={customSelectStyles}
+                            className="w-full"
+                          />
+                        </div>
+
+                        {exercises.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeExercise(exIndex)}
+                            className="
+                                w-8
+                                h-8
+                                shrink-0
+                                rounded-full
+                                flex
+                                items-center
+                                justify-center
+                                text-slate-600
+                                hover:text-red-400
+                                hover:bg-red-400/10
+                                transition
+                              "
+                            title="Remove exercise"
+                          >
+                            <X size={15} />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Total sets */}
+
+                      <div className="mt-3 flex items-center justify-between">
+                        <label className="text-xs text-slate-500">
+                          Total sets
+                        </label>
+
+                        <input
+                          type="number"
+                          min="1"
+                          placeholder="e.g. 3"
+                          value={exercise.totalSets}
+                          onChange={(e) =>
+                            handleExerciseChange(
+                              exIndex,
+                              "totalSets",
+                              e.target.value,
+                            )
+                          }
+                          className="
+                              w-20
+                              h-8
+                              bg-slate-800/70
+                              border
+                              border-slate-700
+                              text-slate-200
+                              rounded-lg
+                              px-2
+                              text-center
+                              text-xs
+                              outline-none
+                              focus:border-sky-500/60
+                              focus:ring-2
+                              focus:ring-sky-500/10
+                              transition
+                            "
+                        />
+                      </div>
+                    </div>
+
+                    {/* ==================================================
+                          SETS
+                      ================================================== */}
+
+                    <div
+                      className="
+                          border-t
+                          border-slate-800
+                          px-3.5
+                          py-3
+                          bg-slate-950/20
+                        "
+                    >
+                      {/* Table heading */}
+
+                      <div
+                        className="
+                            grid
+                            grid-cols-[34px_0.8fr_1.2fr_1fr_48px]
+                            items-center
+                            gap-2
+                            px-2
+                            mb-1.5
+                            text-[9px]
+                            uppercase
+                            tracking-wider
+                            text-slate-600
+                          "
+                      >
+                        <span>#</span>
+
+                        <span className="text-center">Count</span>
+
+                        <span className="text-center">Weight</span>
+
+                        <span className="text-center">Reps</span>
+
+                        <span />
+                      </div>
+
+                      {/* Set rows */}
+
+                      <div className="space-y-1.5">
+                        {exercise.sets.map((set, setIndex) => (
+                          <div
+                            key={setIndex}
+                            className="
+                                  grid
+                                  grid-cols-[34px_0.8fr_1.2fr_1fr_48px]
+                                  items-center
+                                  gap-2
+                                  bg-slate-900/70
+                                  rounded-xl
+                                  px-2
+                                  py-1.5
+                                "
+                          >
+                            {/* Set number */}
+
+                            <div
+                              className="
+                                    w-6
+                                    h-6
+                                    rounded-md
+                                    bg-slate-800
+                                    flex
+                                    items-center
+                                    justify-center
+                                    text-[10px]
+                                    text-slate-500
+                                  "
+                            >
+                              {setIndex + 1}
+                            </div>
+
+                            {/* Count */}
+
+                            <input
+                              type="number"
+                              min="1"
+                              inputMode="numeric"
+                              placeholder="—"
+                              value={set.count}
+                              onChange={(e) => {
+                                const value = e.target.value;
+
+                                if (value === "" || Number(value) > 0) {
+                                  handleSetChange(
+                                    exIndex,
+                                    setIndex,
+                                    "count",
+                                    value,
+                                  );
+                                }
+                              }}
+                              className="
+                                    w-full
+                                    h-8
+                                    bg-transparent
+                                    border
+                                    border-transparent
+                                    hover:border-slate-700
+                                    focus:border-sky-500/60
+                                    rounded-lg
+                                    text-center
+                                    text-xs
+                                    text-slate-200
+                                    outline-none
+                                    transition
+                                  "
+                            />
+
+                            {/* Weight */}
+
+                            <div className="relative">
+                              <input
+                                type="number"
+                                min="0.01"
+                                step="0.01"
+                                inputMode="decimal"
+                                placeholder="—"
+                                value={set.weight || ""}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+
+                                  if (value === "" || Number(value) > 0) {
+                                    handleSetChange(
+                                      exIndex,
+                                      setIndex,
+                                      "weight",
+                                      value,
+                                    );
+                                  }
+                                }}
+                                className="
+                                      w-full
+                                      h-8
+                                      bg-transparent
+                                      border
+                                      border-transparent
+                                      hover:border-slate-700
+                                      focus:border-sky-500/60
+                                      rounded-lg
+                                      text-center
+                                      text-xs
+                                      text-slate-200
+                                      outline-none
+                                      pr-7
+                                      transition
+                                    "
+                              />
+
+                              <span
+                                className="
+                                      absolute
+                                      right-2
+                                      top-1/2
+                                      -translate-y-1/2
+                                      text-[9px]
+                                      text-slate-600
+                                      pointer-events-none
+                                    "
+                              >
+                                kg
+                              </span>
+                            </div>
+
+                            {/* Reps */}
+
+                            <div className="relative">
+                              <input
+                                type="number"
+                                min="1"
+                                inputMode="numeric"
+                                placeholder="—"
+                                value={set.reps}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+
+                                  if (value === "" || Number(value) > 0) {
+                                    handleSetChange(
+                                      exIndex,
+                                      setIndex,
+                                      "reps",
+                                      value,
+                                    );
+                                  }
+                                }}
+                                className="
+                                      w-full
+                                      h-8
+                                      bg-transparent
+                                      border
+                                      border-transparent
+                                      hover:border-slate-700
+                                      focus:border-sky-500/60
+                                      rounded-lg
+                                      text-center
+                                      text-xs
+                                      text-slate-200
+                                      outline-none
+                                      pr-7
+                                      transition
+                                    "
+                              />
+
+                              <span
+                                className="
+                                      absolute
+                                      right-2
+                                      top-1/2
+                                      -translate-y-1/2
+                                      text-[9px]
+                                      text-slate-600
+                                      pointer-events-none
+                                    "
+                              >
+                                reps
+                              </span>
+                            </div>
+
+                            {/* Set controls */}
+
+                            <div className="flex items-center justify-end gap-0.5">
+                              <button
+                                type="button"
+                                onClick={() => addSet(exIndex)}
+                                className="
+                                      w-7
+                                      h-7
+                                      rounded-lg
+                                      flex
+                                      items-center
+                                      justify-center
+                                      text-slate-500
+                                      hover:text-sky-400
+                                      hover:bg-sky-400/10
+                                      transition
+                                    "
+                                title="Add set"
+                              >
+                                <Plus size={14} />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => removeSet(exIndex, setIndex)}
+                                disabled={exercise.sets.length === 1}
+                                className="
+                                      w-7
+                                      h-7
+                                      rounded-lg
+                                      flex
+                                      items-center
+                                      justify-center
+                                      text-slate-600
+                                      hover:text-red-400
+                                      hover:bg-red-400/10
+                                      disabled:opacity-20
+                                      disabled:cursor-not-allowed
+                                      transition
+                                    "
+                                title="Remove set"
+                              >
+                                <Minus size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Validation */}
+
+                      {errors[exIndex] && (
+                        <p className="text-[11px] text-red-400 mt-2 px-1">
+                          {errors[exIndex]}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ==================================================
+                  ADD EXERCISE
+              ================================================== */}
+
+              <button
+                type="button"
+                onClick={addExercise}
+                className="
+                  w-full
+                  mt-3
+                  h-10
+                  rounded-xl
+                  border
+                  border-dashed
+                  border-slate-700
+                  text-slate-500
+                  hover:text-sky-400
+                  hover:border-sky-500/40
+                  hover:bg-sky-400/5
+                  flex
+                  items-center
+                  justify-center
+                  gap-2
+                  text-xs
+                  font-medium
+                  transition
+                "
+              >
+                <Plus size={15} />
+                Add another exercise
+              </button>
+            </section>
+
+            {/* ==================================================
+                ACTIONS
+            ================================================== */}
+
+            <section className="pt-1">
+              <button
+                type="submit"
+                className="
+                  w-full
+                  h-11
+                  rounded-xl
+                  bg-sky-500
+                  hover:bg-sky-400
+                  active:scale-[0.99]
+                  text-white
+                  text-sm
+                  font-semibold
+                  shadow-lg
+                  shadow-sky-500/10
+                  transition
+                "
+              >
+                {isEditMode ? "Update Workout" : "Save Workout"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate("/")}
+                className="
+                  w-full
+                  mt-2
+                  h-9
+                  rounded-xl
+                  text-xs
+                  text-slate-600
+                  hover:text-slate-300
+                  transition
+                "
+              >
+                Cancel
+              </button>
+            </section>
+          </form>
+        </div>
       </div>
     </div>
   );
