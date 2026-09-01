@@ -3,11 +3,13 @@ const nodemailer = require("nodemailer");
 console.log("EMAIL_USER:", process.env.EMAIL_USER);
 console.log(
   "EMAIL_APP_PASSWORD:",
-  process.env.EMAIL_APP_PASSWORD ? "FOUND" : "MISSING",
+  process.env.EMAIL_APP_PASSWORD ? "FOUND" : "MISSING"
 );
 
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_APP_PASSWORD,
